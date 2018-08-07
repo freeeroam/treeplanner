@@ -1,10 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include <iterator>
 #include <signal.h>
 #include <curses.h>
-#include <string>
-#include <list>
+#include <cmath>
 #include "treeplanner.h"
 
 Item * root;
@@ -17,23 +15,23 @@ int main()
   root = initialise_root_item();
   Item * current_item = root;
   std::list <Item *> ::const_iterator selected_item;
+  std::list <Item *> ::const_iterator first_visible_item;
   int input_char = 0;
-
-  // Add signal for resizing ************
+  int max_rows = 0;
 
   initscr();
   noecho();
   cbreak();
   keypad(stdscr, true);
   load_all(items_file_name);
-  mvaddstr(1, 1, "success");
   refresh();
   selected_item = root->get_children().begin();
-
+  first_visible_item = selected_item;
 
   while (true)
   {
-    display_item_view(current_item, *selected_item);
+    max_rows = display_item_view(current_item, *selected_item,
+                                 first_visible_item);
     display_help_bar();
     refresh();
 
@@ -46,14 +44,22 @@ int main()
       save_all(items_file_name);
     } else if (input_char == 'a') // add new
     {
-      add_new_item(*current_item);
+      if (add_new_item(*current_item) &&
+          current_item->get_children().size() == 1)
+      {
+        selected_item = current_item->get_children().begin();
+        first_visible_item = selected_item;
+      } // if
     } else if (input_char == 'd') // delete
     {
       if (selected_item != current_item->get_children().end() &&
           confirm_delete())
       {
         delete_item(*selected_item);
+        selected_item = current_item->get_children().begin();
+        first_visible_item = current_item->get_children().begin();
       } // if
+      erase();
     } else if (input_char == '?') // help
     {
       display_help_view();
@@ -65,8 +71,23 @@ int main()
         selected_item--;
       } else
       {
-        selected_item++;
+        selected_item--;
       } // else
+
+      // Scroll up or down if selected item is not visible
+      if (first_visible_item != current_item->get_children().begin() &&
+          before(current_item->get_children(), selected_item,
+                        first_visible_item))
+      {
+          first_visible_item--;
+      } else if (std::distance(first_visible_item, selected_item) >= max_rows)
+      {
+        first_visible_item =
+          std::next(first_visible_item,
+                    std::distance(first_visible_item,
+                                  selected_item) - max_rows + 1);
+      } // else if
+      erase();
     } else if (input_char == 'k' || input_char == KEY_DOWN) // down
     {
       if (selected_item == std::prev(current_item->get_children().end()))
@@ -76,20 +97,35 @@ int main()
       {
         selected_item++;
       } // else
+
+      // Scroll up or down if selected item is not visible
+      if (selected_item == current_item->get_children().begin() &&
+          before(current_item->get_children(), selected_item,
+                 first_visible_item))
+      {
+        first_visible_item = selected_item;
+      } else if (std::distance(first_visible_item, selected_item) >= max_rows)
+      {
+        first_visible_item++;
+      } // if
       erase();
     } else if ((input_char == 'h' || input_char == KEY_LEFT) &&
                current_item != root) // back
     {
-      selected_item
-        = iterator_at(current_item,
-                      &(current_item->get_parent()->get_children()));
+      selected_item =
+        iterator_at(current_item,
+                    &(current_item->get_parent()->get_children()));
+      first_visible_item =
+        current_item->get_parent()->get_children().begin();
       current_item = current_item->get_parent();
       erase();
-    } else if (input_char == 'l' || input_char == '\n' ||
-               input_char == KEY_RIGHT || input_char == KEY_ENTER) // select
+    } else if ((input_char == 'l' || input_char == '\n' ||
+                input_char == KEY_RIGHT || input_char == KEY_ENTER) &&
+               !current_item->get_children().empty()) // select
     {
       current_item = *selected_item;
       selected_item = current_item->get_children().begin();
+      first_visible_item = selected_item;
       erase();
     } // else if
     refresh();
@@ -105,8 +141,8 @@ Item * initialise_root_item()
   std::string root_name = "Root";
   std::string root_desc = "Ancestor of all items.";
   Item * root_item = new Item(root_id, root_name, root_desc);
-  all_items.push_back(root);
-  return root;
+  all_items.push_back(root_item);
+  return root_item;
 } // function initialise_root_item
 
 void update_screen_size(int signal)
@@ -117,7 +153,7 @@ void update_screen_size(int signal)
 
 void display_help_bar()
 {
-  move(LINES - 4, 1);
+  move(LINES - 1, 1);
   addstr("? - help");
   refresh();
 } // function display_help_bar
@@ -125,35 +161,56 @@ void display_help_bar()
 void display_help_view()
 {
   erase();
-  addstr("q - quit\n a - add item\n d - delete item\n s - save\n\n"
+  addstr(" q - quit\n a - add item\n d - delete item\n s - save\n\n"
          "PRESS ANY KEY TO CONTINUE");
   while (!getch())
   {} // while
   erase();
 } // function display_help_view
 
-void display_item_view(Item * item, Item * selected_item)
+int display_item_view(Item * item, Item * selected_item,
+                      std::list <Item *> ::const_iterator first_visible)
 {
   std::list <Item *> ::const_iterator it;
-  int line_count = 0;
+  int item_count = 0;
   int border_len = (COLS >= 80) ? 70 : COLS - 1;
+  int starting_row = 0;
+  int max_rows = 0;
 
-  if (selected_item == root)
+  if (item == root)
   {
+    starting_row = 2;
     move(1,1);
     printw("Total items: %d", all_items.size() - 1);
-  } // if
-
-  mvhline(2, 1, ACS_HLINE, border_len);
-  for (it = item->get_children().begin(); it != item->get_children().end();
-       it++)
+  } else
   {
-    line_count++;
-    move(2 + line_count, 4);
+    starting_row = 4;
+    move(1, 1);
+    print_bold("Name/Title: ");
+    addstr(item->get_name().c_str());
+    move(3, 1);
+    print_bold("Description: ");
+    addstr(item->get_content().c_str());
+  } // else
+
+  // Find number of rows that can fit between the item details and the
+  // input/help bar at the bottom of the screen
+  max_rows = std::floor((LINES - starting_row - 6) / 2);
+
+  mvhline(starting_row + 1, 1, ACS_HLINE, border_len);
+  for (it = first_visible; it != item->get_children().end(); it++)
+  {
+    if (++item_count > max_rows)
+    {
+      break;
+    } // if
+    move(2 * item_count + starting_row, 3);
     display_item_row(*it, selected_item);
-    mvhline(3 + line_count, 3, ACS_HLINE, border_len);
+    mvaddch(2 * item_count + starting_row, 1, ACS_VLINE);
+    mvhline(2 * item_count + starting_row + 1, 1, ACS_HLINE, border_len);
   } // for
   refresh();
+  return max_rows;
 } // function display_item_page
 
 void display_item_row(Item * item, Item * selected_item)
@@ -173,7 +230,6 @@ void display_item_row(Item * item, Item * selected_item)
         break;
       } // if
       addch(item->get_name()[char_index] | A_STANDOUT);
-      mvaddch(cursor_y, 1, ACS_VLINE);
     } // for
   } else
   {
@@ -184,8 +240,7 @@ void display_item_row(Item * item, Item * selected_item)
       {
         break;
       } // if
-      addch(item->get_name()[char_index] | A_STANDOUT);
-      mvaddch(cursor_y, 1, ACS_VLINE);
+      addch(item->get_name()[char_index]);
     } // for
   } // else
   refresh();
@@ -214,22 +269,28 @@ std::string get_string_input(std::string prompt)
   int cursor_x = 0;
 
   mvaddstr(LINES - 4, 1, prompt.c_str());
-  while((input_char = getch() != '\n' ||
-        input_char == KEY_ENTER))
+  while((input_char = getch()) != '\n' ||
+        input_char == KEY_ENTER)
   {
     if (input_char == 27) // ESC
     {
+      clear_input_bar();
       return "";
     } else if (input_char == KEY_BACKSPACE && !input_str.empty())
     {
       getyx(stdscr, cursor_y, cursor_x);
       mvaddch(cursor_y, cursor_x - 1, ' ');
       input_str.pop_back();
+      move(cursor_y, cursor_x - 1);
+      continue;
+    } else if (input_char == KEY_BACKSPACE)
+    {
       continue;
     } // else if
     echochar(input_char);
     input_str.push_back(input_char);
   } // while
+  clear_input_bar();
   return input_str;
 } // function get_string input
 
@@ -246,6 +307,8 @@ void clear_input_bar()
   {
     clear_line(LINES - line_count, 0);
   } // for
+  display_help_bar();
+  refresh();
 } // function clear_input_bar
 
 void delete_item(Item * item)
@@ -256,8 +319,16 @@ void delete_item(Item * item)
   {
     if (*it == item)
     {
+      refresh();
       all_items.erase(it);
+      break;
     } // if
+  } // for
+
+  // Delete the item's children
+  for (it = item->get_children().begin(); it != item->get_children().end();)
+  {
+    delete_item(*it++);
   } // for
   delete item;
 } // function delete_item
@@ -268,11 +339,13 @@ bool confirm_delete()
   mvaddstr(LINES - 4, 1,
            "Are you sure you want to delete the selected item? (y/n)");
   refresh();
-  if ((input_char == getch()) == 'y' ||
+  if ((input_char = getch()) == 'y' ||
       input_char == 'Y')
   {
+    clear_input_bar();
     return true;
   } // if
+  clear_input_bar();
   return false;
 } // function confirm_delete
 
@@ -288,6 +361,7 @@ void load_all(const std::string & filename)
   std::string delimiter = "@@@";
   size_t position = 0;
   Item * new_item = nullptr;
+  int max_id = 0;
   int line_count = 0;
 
   while (std::getline(file, input_line))
@@ -305,8 +379,10 @@ void load_all(const std::string & filename)
     name = *std::next(field_list.begin(), 1);
     content = *std::next(field_list.begin(), 2);
 
-    mvaddstr(line_count, 0, "success"); 
-    refresh();
+    if (item_id_num > max_id)
+    {
+      max_id = item_id_num;
+    } // if
 
     item_id.id = item_id_num;
     parent_id.id = parent_id_num;
@@ -319,6 +395,7 @@ void load_all(const std::string & filename)
   } // while
 
   file.close();
+  UniqueId::set_next_id(max_id + 1);
 } // function load_all
 
 Item * find_item(const UniqueId item_id)
@@ -354,7 +431,7 @@ void save_all(const std::string & filename)
     file << current_item->get_id().id << "@@@"
          << current_item->get_name() << "@@@"
          << current_item->get_content() << "@@@"
-         << current_item->get_parent()->get_id().id << "@@@";
+         << current_item->get_parent()->get_id().id << "@@@" << std::endl;
     queue.pop_front();
 
     for (it = current_item->get_children().begin();
@@ -375,7 +452,7 @@ Item * create_item(UniqueId item_id, UniqueId parent_id,
   if (parent != nullptr)
   {
     new_item = new Item(item_id, name, content);
-    if (parent_id.id != 0 && parent != nullptr)
+    if (parent != nullptr)
     {
       new_item->set_parent(parent);
     } // if
@@ -393,7 +470,7 @@ void print_bold(std::string str)
 {
   for (int char_index = 0; char_index < str.size(); char_index++)
   {
-    addch(str[char_index] | A_UNDERLINE);
+    addch(str[char_index] | A_BOLD);
   } // for
 } // function print_bold
 
@@ -418,3 +495,27 @@ std::list <Item *> ::const_iterator iterator_at(
   } // for
   return container->end();
 } // function iterator_at
+
+// Returns true if the item pointed to by the iterator first comes before
+// the item pointed to by the iterator second
+bool before(std::list <Item *> container,
+            std::list <Item *> ::const_iterator first,
+            std::list <Item *> ::const_iterator second)
+{
+  std::list <Item *> ::const_iterator it;
+  if (second != container.begin() &&
+      first != std::prev(container.end()))
+  {
+    for (it = std::prev(second); true; it--)
+    {
+      if (it == first)
+      {
+        return true;
+      } else if (it == container.begin() || it == container.end())
+      {
+        break;
+      } // else if
+    } // for
+  } // if
+  return false;
+} // function before

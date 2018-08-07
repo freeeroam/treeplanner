@@ -2,6 +2,7 @@
 #define TREEPLAN_H
 #include <string>
 #include <list>
+#include <iterator>
 
 // Models a unique identifier used for items.
 // This class is used to hide the implementation of the unique IDs
@@ -58,7 +59,8 @@ Item * initialise_root_item();
 void update_screen_size(int signal);
 void display_help_bar();
 void display_help_view();
-void display_item_view(Item * item, Item * selected_item);
+int display_item_view(Item * item, Item * selected_item,
+                      std::list <Item *> ::const_iterator first_visible);
 void display_item_row(Item * item, Item * selected_item);
 bool add_new_item(Item & parent);
 std::string get_string_input(std::string prompt);
@@ -76,5 +78,8 @@ void print_bold(std::string string);
 void print_bold_underlined(std::string string);
 std::list <Item *> ::const_iterator iterator_at(
     Item * elem, const std::list <Item *> * container);
+bool before(std::list <Item *> container,
+            std::list <Item *> ::const_iterator first,
+            std::list <Item *> ::const_iterator second);
 
 #endif

@@ -1,8 +1,6 @@
 #include <iostream>
 #include <iterator>
-#include <sstream>
-#include <fstream>
-#include "treeplan.h"
+#include "treeplanner.h"
 
 Item::Item(UniqueId item_id, std::string & item_name,
            std::string & item_content)

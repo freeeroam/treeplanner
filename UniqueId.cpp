@@ -1,5 +1,5 @@
 #include <iostream>
-#include "treeplan.h"
+#include "treeplanner.h"
 
 int UniqueId::next_id = 0; // set initial ID
 
