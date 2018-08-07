@@ -28,12 +28,14 @@ $ treeplanner
 
 ### Controls
 - Use <kbd>↑</kbd> and <kbd>↓</kbd> to navigate through dependency items.
+- Use <kbd>g</kbd> and <kbd>G</kbd> to navigate to the top and bottom items, respectively.
 - Use <kbd>→</kbd> or <kbd>ENTER</kbd> to view the selected item.
 - Use <kbd>←</kbd> to go back to the previous item.
 - Use <kbd>a</kbd> to add a new item.
 - Use <kbd>d</kbd> to delete the selected item.
 - Use <kbd>?</kbd> to view the help screen.
 - Use <kbd>s</kbd> to save all items (all items are saved automatically when quitting).
+- Use <kbd>r</kbd> to refresh the current view.
 - Use <kbd>q</kbd> to quit.
 
 ## Requirements
