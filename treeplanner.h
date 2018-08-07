@@ -56,7 +56,6 @@ class Item
 
 // Main function declarations
 Item * initialise_root_item();
-void update_screen_size(int signal);
 void display_help_bar();
 void display_help_view();
 int display_item_view(Item * item, Item * selected_item,

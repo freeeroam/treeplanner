@@ -22,9 +22,9 @@ int main()
   initscr();
   noecho();
   cbreak();
+  curs_set(0);
   keypad(stdscr, true);
   load_all(items_file_name);
-  refresh();
   selected_item = root->get_children().begin();
   first_visible_item = selected_item;
 
@@ -39,6 +39,9 @@ int main()
     {
       close_program();
       break;
+    } else if (input_char == 'r') // refresh
+    {
+      continue;
     } else if (input_char == 's') // save
     {
       save_all(items_file_name);
@@ -121,19 +124,36 @@ int main()
       erase();
     } else if ((input_char == 'l' || input_char == '\n' ||
                 input_char == KEY_RIGHT || input_char == KEY_ENTER) &&
-               !current_item->get_children().empty()) // select
+               !current_item->get_children().empty()) // view item
     {
       current_item = *selected_item;
       selected_item = current_item->get_children().begin();
       first_visible_item = selected_item;
       erase();
-    } // else if
+    } else if (input_char == 'g') // first item
+    {
+      selected_item = current_item->get_children().begin();
+      first_visible_item = selected_item;
+      erase();
+    } else if (input_char == 'G') // last item
+    {
+      selected_item = std::prev(current_item->get_children().end());
+      if (std::distance(first_visible_item, selected_item) >= max_rows)
+      {
+        first_visible_item =
+          std::next(first_visible_item,
+                    std::distance(first_visible_item, selected_item) -
+                    max_rows + 1);
+      } // if
+    } // if
     refresh();
   } // while
 
   return 0;
 } // function main
 
+// Creates an Item instance, initialises it with root info and returns a
+// pointer to it.
 Item * initialise_root_item()
 {
   UniqueId root_id;
@@ -145,12 +165,7 @@ Item * initialise_root_item()
   return root_item;
 } // function initialise_root_item
 
-void update_screen_size(int signal)
-{
-  endwin();
-  refresh();
-} // function update_screen_size
-
+// Display help information at the bottom of the window.
 void display_help_bar()
 {
   move(LINES - 1, 1);
@@ -158,16 +173,20 @@ void display_help_bar()
   refresh();
 } // function display_help_bar
 
+// Display the main command keys, until the user presses any key.
 void display_help_view()
 {
   erase();
-  addstr(" q - quit\n a - add item\n d - delete item\n s - save\n\n"
+  addstr(" q - quit\n a - add item\n d - delete item\n s - save\n"
+         " r - refresh\n g - top item\n G - bottom item\n\n"
          "PRESS ANY KEY TO CONTINUE");
   while (!getch())
   {} // while
   erase();
 } // function display_help_view
 
+// Displays information about the item given as the first argument and
+// lists its children/dependencies.
 int display_item_view(Item * item, Item * selected_item,
                       std::list <Item *> ::const_iterator first_visible)
 {
@@ -213,6 +232,8 @@ int display_item_view(Item * item, Item * selected_item,
   return max_rows;
 } // function display_item_page
 
+// Prints the name of the given item in a style based on whether the item is
+// selected or not.
 void display_item_row(Item * item, Item * selected_item)
 {
   int char_index;
@@ -246,6 +267,8 @@ void display_item_row(Item * item, Item * selected_item)
   refresh();
 } // function display_item_row
 
+// Asks the user to enter item information and attempts to create a new item,
+// returning true if succesful and false otherwise.
 bool add_new_item(Item & parent)
 {
   UniqueId item_id;
@@ -261,6 +284,8 @@ bool add_new_item(Item & parent)
   return false;
 } // function add_new_item
 
+// Prompts the user for input and returns the entered string, or an empty
+// string if the user cancels the operation.
 std::string get_string_input(std::string prompt)
 {
   std::string input_str = "";
@@ -294,6 +319,7 @@ std::string get_string_input(std::string prompt)
   return input_str;
 } // function get_string input
 
+// Clears the rest of the line, starting from the given coordinate.
 void clear_line(int y, int x)
 {
   move(y, x);
@@ -301,6 +327,7 @@ void clear_line(int y, int x)
   refresh();
 } // function clear_line
 
+// Clear input bar and reset the help bar.
 void clear_input_bar()
 {
   for (int line_count = 1; line_count < 5; line_count++)
@@ -311,6 +338,7 @@ void clear_input_bar()
   refresh();
 } // function clear_input_bar
 
+// Delete the given item and its children recursively.
 void delete_item(Item * item)
 {
   std::list <Item *> ::const_iterator it;
@@ -333,6 +361,8 @@ void delete_item(Item * item)
   delete item;
 } // function delete_item
 
+// Prompts the user to confirm the deletion of an item and returns true if the
+// user confirms, false otherwise.
 bool confirm_delete()
 {
   int input_char = 0;
@@ -349,6 +379,7 @@ bool confirm_delete()
   return false;
 } // function confirm_delete
 
+// Load all items from the file with the given file name.
 void load_all(const std::string & filename)
 {
   std::fstream file (filename, std::fstream::in);
@@ -398,6 +429,8 @@ void load_all(const std::string & filename)
   UniqueId::set_next_id(max_id + 1);
 } // function load_all
 
+// Performs a linear search of all items and returns a pointer to the item
+// with the given ID, or nullptr if no such item exists.
 Item * find_item(const UniqueId item_id)
 {
   std::list <Item *> ::const_iterator it;
@@ -411,6 +444,7 @@ Item * find_item(const UniqueId item_id)
   return nullptr;
 } // function find_item
 
+// Save all items to the file with the given file name in a breadth-first fashion.
 void save_all(const std::string & filename)
 {
   std::fstream file (filename, std::fstream::out);
@@ -443,6 +477,8 @@ void save_all(const std::string & filename)
   file.close();
 } // function save_all
 
+// Creates a new instance of Item with the given details and returns a
+// pointer to it.
 Item * create_item(UniqueId item_id, UniqueId parent_id,
                    std::string & name, std::string & content)
 {
@@ -460,12 +496,14 @@ Item * create_item(UniqueId item_id, UniqueId parent_id,
   return new_item;
 } // function create_item
 
+// Saves all items and closes stdscr.
 void close_program()
 {
   save_all(items_file_name);
   endwin();
 } // function close_program
 
+// Displays the given string in bold.
 void print_bold(std::string str)
 {
   for (int char_index = 0; char_index < str.size(); char_index++)
@@ -474,6 +512,7 @@ void print_bold(std::string str)
   } // for
 } // function print_bold
 
+// Displays the given string bold and underlined.
 void print_bold_underlined(std::string str)
 {
   for (int char_index = 0; char_index < str.size(); char_index++)
@@ -482,6 +521,7 @@ void print_bold_underlined(std::string str)
   } // for
 } // function print_bold_underlined
 
+// Returns an iterator pointing to the given element in the given container.
 std::list <Item *> ::const_iterator iterator_at(
     Item * elem, const std::list <Item *> * container)
 {
