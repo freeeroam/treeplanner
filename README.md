@@ -37,7 +37,6 @@ $ treeplanner
 - Use <kbd>q</kbd> to quit.
 
 ## Requirements
-- g++ (C++11 is required)
+- g++
+- libncurses5-dev
 - make
-
-If you are using a Debian-based distribution, the package "build-essential" will satisfy these requirements.
