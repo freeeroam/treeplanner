@@ -22,7 +22,7 @@ int main()
   initscr();
   noecho();
   cbreak();
-  curs_set(0);
+  //curs_set(0);
   keypad(stdscr, true);
   load_all(items_file_name);
   selected_item = root->get_children().begin();
@@ -245,8 +245,8 @@ void display_item_row(Item * item, Item * selected_item)
   {
     for (char_index = 0; char_index < item->get_name().size(); char_index++)
     {
-      if (cursor_x + char_index > COLS ||
-          cursor_x + char_index > 70)
+      if (cursor_x + char_index > COLS - 1 ||
+          cursor_x + char_index > 70 - 1)
       {
         break;
       } // if
@@ -256,8 +256,8 @@ void display_item_row(Item * item, Item * selected_item)
   {
     for (char_index = 0; char_index < item->get_name().size(); char_index++)
     {
-      if (cursor_x + char_index > COLS ||
-          cursor_x + char_index > 70)
+      if (cursor_x + char_index > COLS - 1 ||
+          cursor_x + char_index > 70 - 1)
       {
         break;
       } // if
@@ -297,16 +297,16 @@ std::string get_string_input(std::string prompt)
   while((input_char = getch()) != '\n' ||
         input_char == KEY_ENTER)
   {
+    refresh();
     if (input_char == 27) // ESC
     {
       clear_input_bar();
       return "";
     } else if (input_char == KEY_BACKSPACE && !input_str.empty())
     {
-      getyx(stdscr, cursor_y, cursor_x);
       mvaddch(cursor_y, cursor_x - 1, ' ');
-      input_str.pop_back();
       move(cursor_y, cursor_x - 1);
+      input_str.pop_back();
       continue;
     } else if (input_char == KEY_BACKSPACE)
     {
