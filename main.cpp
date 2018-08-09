@@ -305,6 +305,7 @@ std::string get_string_input(std::string prompt)
       return "";
     } else if (input_char == KEY_BACKSPACE && !input_str.empty())
     {
+      getyx(stdscr, cursor_y, cursor_x);
       mvaddch(cursor_y, cursor_x - 1, ' ');
       move(cursor_y, cursor_x - 1);
       input_str.pop_back();
