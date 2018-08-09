@@ -22,7 +22,7 @@ int main()
   initscr();
   noecho();
   cbreak();
-  //curs_set(0);
+  curs_set(0);
   keypad(stdscr, true);
   load_all(items_file_name);
   selected_item = root->get_children().begin();
