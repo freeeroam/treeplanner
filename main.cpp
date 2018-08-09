@@ -41,6 +41,7 @@ int main()
       break;
     } else if (input_char == 'r') // refresh
     {
+      erase();
       continue;
     } else if (input_char == 's') // save
     {
