@@ -33,6 +33,7 @@ $ treeplanner
 - Use <kbd>←</kbd> to go back to the previous item.
 - Use <kbd>a</kbd> to add a new item.
 - Use <kbd>d</kbd> to delete the selected item.
+- Use <kbd>e</kbd> to edit the selected item.
 - Use <kbd>?</kbd> to view the help screen.
 - Use <kbd>s</kbd> to save all items (all items are saved automatically when quitting).
 - Use <kbd>r</kbd> to refresh the current view.

@@ -63,8 +63,10 @@ int display_item_view(Item * item, Item * selected_item,
 void display_item_row(Item * item, Item * selected_item);
 bool add_new_item(Item & parent);
 std::string get_string_input(std::string prompt);
+int get_char_input(std::string prompt);
 void clear_line(int y, int x);
 void clear_input_bar();
+void edit_item(Item * item);
 void delete_item(Item * item);
 bool confirm_delete();
 void load_all(const std::string & filename);

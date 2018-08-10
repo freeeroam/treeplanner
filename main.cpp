@@ -64,6 +64,10 @@ int main()
         first_visible_item = current_item->get_children().begin();
       } // if
       erase();
+    } else if (input_char == 'e') // edit
+    {
+      edit_item(*selected_item);
+      erase();
     } else if (input_char == '?') // help
     {
       display_help_view();
@@ -178,8 +182,8 @@ void display_help_bar()
 void display_help_view()
 {
   erase();
-  addstr(" q - quit\n a - add item\n d - delete item\n s - save\n"
-         " r - refresh\n g - top item\n G - bottom item\n\n"
+  addstr(" q - quit\n a - add item\n d - delete item\n e - edit item\n"
+         " s - save\n r - refresh\n g - top item\n G - bottom item\n\n"
          "PRESS ANY KEY TO CONTINUE");
   while (!getch())
   {} // while
@@ -321,6 +325,16 @@ std::string get_string_input(std::string prompt)
   return input_str;
 } // function get_string input
 
+// Get a single character input from the user using the input bar.
+int get_char_input(std::string prompt)
+{
+  int input_char = 0;
+  mvaddstr(LINES - 4, 1, prompt.c_str());
+  input_char = getch();
+  clear_input_bar();
+  return input_char;
+} // function get_char_input
+
 // Clears the rest of the line, starting from the given coordinate.
 void clear_line(int y, int x)
 {
@@ -362,6 +376,25 @@ void delete_item(Item * item)
   } // for
   delete item;
 } // function delete_item
+
+// Change the name or description of the given item.
+void edit_item(Item * item)
+{
+  std::string new_info = "";
+  int input_char = get_char_input("Do you want to edit the name "
+                                  "or description? (N/D): ");
+
+  if (input_char == 'n' || input_char == 'N')
+  {
+    if ((new_info = get_string_input("Enter name/title: ")) != "")
+    {
+      item->set_name(new_info);
+    } // if
+  } else if (input_char == 'd' || input_char == 'D')
+  {
+    item->set_content(get_string_input("Enter description: "));
+  } // else if
+} // function edit_item
 
 // Prompts the user to confirm the deletion of an item and returns true if the
 // user confirms, false otherwise.
