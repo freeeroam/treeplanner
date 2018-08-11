@@ -183,7 +183,8 @@ void display_help_view()
 {
   erase();
   addstr(" q - quit\n a - add item\n d - delete item\n e - edit item\n"
-         " s - save\n r - refresh\n g - top item\n G - bottom item\n\n"
+         " s - save\n r - refresh\n g - top item\n G - bottom item\n"
+         " ESC - cancel input\n\n"
          "PRESS ANY KEY TO CONTINUE");
   while (!getch())
   {} // while
@@ -208,7 +209,7 @@ int display_item_view(Item * item, Item * selected_item,
     printw("Total items: %d", all_items.size() - 1);
   } else
   {
-    starting_row = 4;
+    starting_row = 5;
     move(1, 1);
     print_bold("Name/Title: ");
     addstr(item->get_name().c_str());

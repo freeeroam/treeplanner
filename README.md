@@ -37,9 +37,10 @@ $ treeplanner
 - Use <kbd>?</kbd> to view the help screen.
 - Use <kbd>s</kbd> to save all items (all items are saved automatically when quitting).
 - Use <kbd>r</kbd> to refresh the current view.
+- Use <kbd>ESC</kbd> to cancel entering an item name/description.
 - Use <kbd>q</kbd> to quit.
 
 ## Requirements
 - g++
-- libncurses5-dev
+- ncurses
 - make
