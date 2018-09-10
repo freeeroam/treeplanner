@@ -29,6 +29,9 @@ $ treeplanner
 ### Controls
 - Use <kbd>↑</kbd> and <kbd>↓</kbd> to navigate through dependency items.
 - Use <kbd>g</kbd> and <kbd>G</kbd> to navigate to the top and bottom items, respectively.
+- Use <kbd>/</kbd> to search for an item.
+- Use <kbd>n</kbd> to navigate to the next search match.
+- Use <kbd>N</kbd> to navigate to the previous search match.
 - Use <kbd>→</kbd> or <kbd>ENTER</kbd> to view the selected item.
 - Use <kbd>←</kbd> to go back to the previous item.
 - Use <kbd>a</kbd> to add a new item.
