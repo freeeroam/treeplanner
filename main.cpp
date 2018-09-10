@@ -8,6 +8,7 @@
 Item * root;
 std::string items_file_name;
 std::list <Item *> all_items;
+std::string current_search_string;
 
 int main()
 {
@@ -16,6 +17,7 @@ int main()
   Item * current_item = root;
   std::list <Item *> ::const_iterator selected_item;
   std::list <Item *> ::const_iterator first_visible_item;
+  current_search_string = "";
   int input_char = 0;
   int max_rows = 0;
 
@@ -150,7 +152,16 @@ int main()
                     std::distance(first_visible_item, selected_item) -
                     max_rows + 1);
       } // if
-    } // if
+    } else if (input_char == '/') // search
+    {
+      selected_item = new_search(current_item, selected_item);
+    } else if (input_char == 'n') // next search match
+    {
+      selected_item = next_search_match(current_item, selected_item);
+    } else if (input_char == 'N') // previous search match
+    {
+      selected_item = previous_search_match(current_item, selected_item);
+    } // else if
     refresh();
   } // while
 
@@ -184,6 +195,7 @@ void display_help_view()
   erase();
   addstr(" q - quit\n a - add item\n d - delete item\n e - edit item\n"
          " s - save\n r - refresh\n g - top item\n G - bottom item\n"
+         " / - search\n n - next search match\n N - previous search match\n"
          " ESC - cancel input\n\n"
          "PRESS ANY KEY TO CONTINUE");
   while (!getch())
@@ -547,6 +559,82 @@ void print_bold(std::string str)
     addch(str[char_index] | A_BOLD);
   } // for
 } // function print_bold
+
+std::list <Item *> ::const_iterator new_search(
+    Item * current_item, std::list <Item *> ::const_iterator selected_item)
+{
+  std::list <Item *> ::const_iterator it;
+  int input_char = '\0';
+  std::string search_string = get_string_input("/");
+
+  current_search_string = search_string; // To allow jump to next match
+  return search_item(search_string, current_item, selected_item);
+} // function new_search
+
+std::list <Item *> ::const_iterator next_search_match(
+    Item * current_item, std::list <Item *> ::const_iterator selected_item)
+{
+  if (current_search_string == "")
+  {
+      return selected_item;
+  } // if
+  return search_item(current_search_string, current_item, selected_item);
+} // function next_search_match
+
+std::list <Item *> ::const_iterator previous_search_match(
+    Item * current_item, std::list <Item *> ::const_iterator selected_item)
+{
+  std::list <Item *> ::const_iterator it;
+
+  if (current_search_string == "")
+  {
+    return selected_item;
+  } // if
+
+  it = selected_item == current_item->get_children().begin() ?
+      std::prev(current_item->get_children().end()) : std::prev(selected_item);
+  for (; it != selected_item;
+       it--)
+  {
+    if ((*it)->get_name().find(current_search_string) != std::string::npos)
+    {
+      return it;
+    } // if
+
+    if (it == current_item->get_children().begin())
+    {
+      it = current_item->get_children().end();
+    } // if
+  } // for
+
+  return selected_item;
+} // function previous_search_match
+
+// Returns an iterator pointing to first item matching the given search string
+// after the current selected item
+std::list <Item *> ::const_iterator search_item(
+    std::string search_string, Item * current_item,
+    std::list <Item *> ::const_iterator selected_item)
+{
+  std::list <Item *> ::const_iterator it;
+
+  // Search for item
+  for (it = std::next(selected_item);
+       it != selected_item; it++)
+  {
+    if (it == current_item->get_children().end())
+    {
+      it = current_item->get_children().begin();
+    } // if
+
+    if ((*it)->get_name().find(search_string) != std::string::npos)
+    {
+        return it;
+    }
+  } // for
+  clear_input_bar();
+  return selected_item;
+} // function search_item
 
 // Displays the given string bold and underlined.
 void print_bold_underlined(std::string str)

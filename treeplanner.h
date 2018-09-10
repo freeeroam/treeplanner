@@ -75,6 +75,15 @@ void save_all(const std::string & filename);
 Item * create_item(UniqueId item_id, UniqueId parent_id,
                    std::string & name, std::string & content);
 void close_program();
+std::list <Item *> ::const_iterator new_search(
+    Item * current_item, std::list <Item *> ::const_iterator selected_item);
+std::list <Item *> ::const_iterator next_search_match(
+    Item * current_item, std::list <Item *> ::const_iterator selected_item);
+std::list <Item *> ::const_iterator previous_search_match(
+    Item * current_item, std::list <Item *> ::const_iterator selected_item);
+std::list <Item *> ::const_iterator search_item(
+    std::string search_string, Item * current_item,
+    std::list <Item *> ::const_iterator selected_item);
 void print_bold(std::string string);
 void print_bold_underlined(std::string string);
 std::list <Item *> ::const_iterator iterator_at(
