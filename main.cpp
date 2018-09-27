@@ -139,6 +139,7 @@ int main()
       erase();
     } else if (input_char == 'g') // first item
     {
+
       selected_item = current_item->get_children().begin();
       first_visible_item = selected_item;
       erase();
@@ -152,6 +153,7 @@ int main()
                     std::distance(first_visible_item, selected_item) -
                     max_rows + 1);
       } // if
+      erase();
     } else if (input_char == '/') // search
     {
       selected_item = new_search(current_item, selected_item);
