@@ -58,8 +58,7 @@ class Item
 Item * initialise_root_item();
 void display_help_bar();
 void display_help_view();
-int display_item_view(Item * item, Item * selected_item,
-                      std::list <Item *> ::const_iterator first_visible);
+int display_item_view(Item * item, Item * selected_item);
 void display_item_row(Item * item, Item * selected_item);
 bool add_new_item(Item & parent);
 std::string get_string_input(std::string prompt);
@@ -84,6 +83,8 @@ std::list <Item *> ::const_iterator previous_search_match(
 std::list <Item *> ::const_iterator search_item(
     std::string search_string, Item * current_item,
     std::list <Item *> ::const_iterator selected_item);
+std::list <Item *> ::const_iterator first_item_visible(
+    std::list <Item *> ::const_iterator selected_item, int max_rows);
 void print_bold(std::string string);
 void print_bold_underlined(std::string string);
 std::list <Item *> ::const_iterator iterator_at(

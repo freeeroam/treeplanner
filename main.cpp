@@ -32,8 +32,7 @@ int main()
 
   while (true)
   {
-    max_rows = display_item_view(current_item, *selected_item,
-                                 first_visible_item);
+    max_rows = display_item_view(current_item, *selected_item);
     display_help_bar();
     refresh();
 
@@ -50,20 +49,30 @@ int main()
       save_all(items_file_name);
     } else if (input_char == 'a') // add new
     {
-      if (add_new_item(*current_item) &&
-          current_item->get_children().size() == 1)
+      if (add_new_item(*current_item))
       {
-        selected_item = current_item->get_children().begin();
-        first_visible_item = selected_item;
+        selected_item = std::prev(current_item->get_children().end());
+        first_visible_item = first_item_visible(selected_item, max_rows);
       } // if
     } else if (input_char == 'd') // delete
     {
       if (selected_item != current_item->get_children().end() &&
           confirm_delete())
       {
-        delete_item(*selected_item);
-        selected_item = current_item->get_children().begin();
-        first_visible_item = current_item->get_children().begin();
+        Item * item_to_delete = *selected_item;
+        if (selected_item == current_item->get_children().begin())
+        {
+          selected_item++; // **
+        } else if (current_item->get_children().size() > 0)
+        {
+          selected_item--;
+        } // else
+        delete_item(item_to_delete);
+
+        if (!current_item->get_children().empty())
+        {
+          first_visible_item = first_item_visible(selected_item, max_rows);
+        } // if
       } // if
       erase();
     } else if (input_char == 'e') // edit
@@ -73,7 +82,7 @@ int main()
     } else if (input_char == '?') // help
     {
       display_help_view();
-    } else if (input_char == 'j' || input_char == KEY_UP) // up
+    } else if (input_char == 'k' || input_char == KEY_UP) // up
     {
       if (selected_item == current_item->get_children().begin())
       {
@@ -87,9 +96,9 @@ int main()
       // Scroll up or down if selected item is not visible
       if (first_visible_item != current_item->get_children().begin() &&
           before(current_item->get_children(), selected_item,
-                        first_visible_item))
+                 first_visible_item))
       {
-          first_visible_item--;
+        first_visible_item--;
       } else if (std::distance(first_visible_item, selected_item) >= max_rows)
       {
         first_visible_item =
@@ -98,7 +107,7 @@ int main()
                                   selected_item) - max_rows + 1);
       } // else if
       erase();
-    } else if (input_char == 'k' || input_char == KEY_DOWN) // down
+    } else if (input_char == 'j' || input_char == KEY_DOWN) // down
     {
       if (selected_item == std::prev(current_item->get_children().end()))
       {
@@ -146,13 +155,8 @@ int main()
     } else if (input_char == 'G') // last item
     {
       selected_item = std::prev(current_item->get_children().end());
-      if (std::distance(first_visible_item, selected_item) >= max_rows)
-      {
-        first_visible_item =
-          std::next(first_visible_item,
-                    std::distance(first_visible_item, selected_item) -
-                    max_rows + 1);
-      } // if
+      first_visible_item = first_item_visible(selected_item, max_rows);
+//      std::cout << std::distance(first_visible_item, selected_item) << std::endl;
       erase();
     } else if (input_char == '/') // search
     {
@@ -206,9 +210,9 @@ void display_help_view()
 } // function display_help_view
 
 // Displays information about the item given as the first argument and
-// lists its children/dependencies.
-int display_item_view(Item * item, Item * selected_item,
-                      std::list <Item *> ::const_iterator first_visible)
+// lists its children/dependencies and returns the maximum number of rows
+// visible.
+int display_item_view(Item * item, Item * selected_item)
 {
   std::list <Item *> ::const_iterator it;
   int item_count = 0;
@@ -231,24 +235,30 @@ int display_item_view(Item * item, Item * selected_item,
     print_bold("Description: ");
     addstr(item->get_content().c_str());
   } // else
+  mvhline(starting_row + 1, 1, ACS_HLINE, border_len);
 
   // Find number of rows that can fit between the item details and the
   // input/help bar at the bottom of the screen
   max_rows = std::floor((LINES - starting_row - 6) / 2);
-
-  mvhline(starting_row + 1, 1, ACS_HLINE, border_len);
-  for (it = first_visible; it != item->get_children().end(); it++)
+  if (item->get_children().size() > 0)
   {
-    if (++item_count > max_rows)
+    std::list <Item *> ::const_iterator first_visible = first_item_visible(
+      iterator_at(selected_item, &(selected_item->get_parent()->get_children())),
+      max_rows);
+
+    for (it = first_visible; it != item->get_children().end(); it++)
     {
-      break;
-    } // if
-    move(2 * item_count + starting_row, 3);
-    display_item_row(*it, selected_item);
-    mvaddch(2 * item_count + starting_row, 1, ACS_VLINE);
-    mvhline(2 * item_count + starting_row + 1, 1, ACS_HLINE, border_len);
-  } // for
-  refresh();
+      if (++item_count > max_rows)
+      {
+        break;
+      } // if
+      move(2 * item_count + starting_row, 3);
+      display_item_row(*it, selected_item);
+      mvaddch(2 * item_count + starting_row, 1, ACS_VLINE);
+      mvhline(2 * item_count + starting_row + 1, 1, ACS_HLINE, border_len);
+    } // for
+    refresh();
+  } // if
   return max_rows;
 } // function display_item_page
 
@@ -637,6 +647,32 @@ std::list <Item *> ::const_iterator search_item(
   clear_input_bar();
   return selected_item;
 } // function search_item
+
+// Returns an iterator to the first visible item.
+std::list <Item *> ::const_iterator first_item_visible(
+    std::list <Item *> ::const_iterator selected_item, int max_rows)
+{
+  if ((*selected_item)->get_parent()->get_children().size() == 1)
+  {
+    return selected_item;
+  } else if ((*selected_item)->get_parent()->get_children().size() <=
+             max_rows)
+  {
+    return (*selected_item)->get_parent()->get_children().begin();
+  } // else if
+
+  std::list <Item *> ::const_iterator first_visible = selected_item;
+  for (int item_count = 0; item_count < max_rows - 1; item_count++)
+  {
+    if (first_visible ==
+        (*selected_item)->get_parent()->get_children().begin())
+    {
+      break;
+    } // if
+    first_visible--;
+  } // for
+  return first_visible;
+} // function first_item_visible
 
 // Displays the given string bold and underlined.
 void print_bold_underlined(std::string str)
